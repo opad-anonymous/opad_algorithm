@@ -1,12 +1,24 @@
-# Experiments
+# OPAD Algorithm
 
-This directory contains the main experiment entrypoint for reproducing the experiments of the paper under review:
+This repository contains code for reproducing the experiments of the paper under review:
 *Improving Discrete MCMC via Optimal Particle Weighting*
 
 ## Command-Line Interface
 - `om/experiments/cli_runner.py`
 
-The CLI replaces the old pattern of editing hardcoded `main()` blocks by hand.
+This is the main entry point for running the experiments in the paper.
+
+## Installation
+
+From a clean shell, one simple path is:
+
+```bash
+conda create -n opad_release python=3.11 -y
+conda activate opad_release
+pip install -r requirements.txt
+```
+
+You can also use any other virtual environment manager instead of conda.
 
 ## Quick Start
 
@@ -14,6 +26,12 @@ From the project root:
 
 ```bash
 python om/experiments/cli_runner.py --list-presets
+```
+
+For a full list of command-line arguments, run:
+
+```bash
+python om/experiments/cli_runner.py --help
 ```
 
 Run a paper-style KL experiment:

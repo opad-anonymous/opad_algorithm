@@ -44,8 +44,8 @@ class DiscreteDistributionModel(ABC):
         """
         :return: Z
         """
-        warnings.warn(
-            "Warning: This is not efficient! If you can compute it in advance (and only once) then override this method")
+        # warnings.warn(
+        #     "Warning: This is not efficient! If you can compute it in advance (and only once) then override this method")
         _, unnormalized_probs = self.calc_all_states_and_unnormalized_probs()
         return sum(unnormalized_probs)
 

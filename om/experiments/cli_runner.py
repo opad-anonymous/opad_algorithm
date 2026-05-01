@@ -2,31 +2,18 @@ import argparse
 from dataclasses import dataclass
 from pathlib import Path
 import sys
-from typing import Callable
+from typing import Callable, TYPE_CHECKING
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from om.experiments.experiment_utils import (
-    experiment1_ising1d,
-    experiment2_ising1d__high_dim,
-    experiment3_varselect_mice_data,
-)
-from om.experiments.multichain_bias_experiments_iter import (
-    load_and_show_plots as load_iter_bias_plots,
-    multi_chain_expected_func_compute_and_plot_itr,
-)
-from om.experiments.multichain_bias_experiments_time import (
-    load_and_show_plots_TIME,
-    multi_chain_expected_func_compute_and_plot_time,
-)
-from om.experiments.multichain_kl_experiments import (
-    load_and_show_plots as load_kl_plots,
-    multi_chain_kl_compute_and_plot,
-)
+if TYPE_CHECKING:
+    from om.models.model import Model
+    from om.samplers.sampler import Sampler
 
 DEFAULT_BVS_DATA_PATH = PROJECT_ROOT / "om" / "models" / "lifespan-merged.csv"
+GeneratorCallable = Callable[..., tuple["Model", "Sampler", object]]
 
 
 @dataclass(frozen=True)
@@ -34,7 +21,7 @@ class ExperimentPreset:
     family: str
     model: str
     description: str
-    generator: Callable
+    generator_name: str
     generator_args: dict
     num_records_per_chain: int
     num_independent_chains: int
@@ -66,7 +53,7 @@ class ExperimentRunner:
                 family="kl",
                 model="ising15",
                 description="Ising15",
-                generator=experiment1_ising1d,
+                generator_name="experiment1_ising1d",
                 generator_args={"num_particles": 10, "latice_size": 15, "J": 1, "h": 0.1, "beta": 0.5},
                 num_mcmc_samples_per_chain=20000,
                 num_records_per_chain=100,
@@ -80,7 +67,7 @@ class ExperimentRunner:
                 family="kl",
                 model="bvs",
                 description="BVS",
-                generator=experiment3_varselect_mice_data,
+                generator_name="experiment3_varselect_mice_data",
                 generator_args={"data_path": str(DEFAULT_BVS_DATA_PATH)},
                 num_mcmc_samples_per_chain=10000,
                 num_records_per_chain=100,
@@ -93,7 +80,7 @@ class ExperimentRunner:
                 family="bias_iter",
                 model="ising15",
                 description="Ising15",
-                generator=experiment1_ising1d,
+                generator_name="experiment1_ising1d",
                 generator_args={"num_particles": 100, "latice_size": 15, "J": 1, "h": 0.1, "beta": 0.5},
                 num_mcmc_samples_per_chain=100000,
                 num_records_per_chain=100,
@@ -107,7 +94,7 @@ class ExperimentRunner:
                 family="bias_iter",
                 model="ising30",
                 description="Ising30",
-                generator=experiment2_ising1d__high_dim,
+                generator_name="experiment2_ising1d__high_dim",
                 generator_args={"num_particles": 100, "latice_size": 30, "J": 1, "beta": 0.5},
                 num_mcmc_samples_per_chain=10000,
                 num_records_per_chain=100,
@@ -122,7 +109,7 @@ class ExperimentRunner:
                 family="bias_iter",
                 model="ising40",
                 description="Ising40",
-                generator=experiment2_ising1d__high_dim,
+                generator_name="experiment2_ising1d__high_dim",
                 generator_args={"num_particles": 100, "latice_size": 40, "J": 1, "beta": 0.5},
                 num_mcmc_samples_per_chain=200000,
                 num_records_per_chain=200,
@@ -137,7 +124,7 @@ class ExperimentRunner:
                 family="bias_iter",
                 model="bvs",
                 description="MiceVarSelect",
-                generator=experiment3_varselect_mice_data,
+                generator_name="experiment3_varselect_mice_data",
                 generator_args={"data_path": str(DEFAULT_BVS_DATA_PATH), "num_variational_particles": 100},
                 num_mcmc_samples_per_chain=100000,
                 num_records_per_chain=100,
@@ -151,7 +138,7 @@ class ExperimentRunner:
                 family="bias_time",
                 model="ising15",
                 description="Ising15",
-                generator=experiment1_ising1d,
+                generator_name="experiment1_ising1d",
                 generator_args={"num_particles": 100, "latice_size": 15, "J": 1, "h": 0.1, "beta": 0.5},
                 sampling_time_per_chain_seconds=12,
                 num_records_per_chain=100,
@@ -165,7 +152,7 @@ class ExperimentRunner:
                 family="bias_time",
                 model="ising30",
                 description="Ising30",
-                generator=experiment2_ising1d__high_dim,
+                generator_name="experiment2_ising1d__high_dim",
                 generator_args={"num_particles": 100, "latice_size": 30, "J": 1, "beta": 0.5},
                 sampling_time_per_chain_seconds=12,
                 num_records_per_chain=100,
@@ -180,7 +167,7 @@ class ExperimentRunner:
                 family="bias_time",
                 model="ising40",
                 description="Ising40",
-                generator=experiment2_ising1d__high_dim,
+                generator_name="experiment2_ising1d__high_dim",
                 generator_args={"num_particles": 100, "latice_size": 40, "J": 1, "beta": 0.5},
                 sampling_time_per_chain_seconds=12,
                 num_records_per_chain=100,
@@ -195,7 +182,7 @@ class ExperimentRunner:
                 family="bias_time",
                 model="bvs",
                 description="BVS",
-                generator=experiment3_varselect_mice_data,
+                generator_name="experiment3_varselect_mice_data",
                 generator_args={"data_path": str(DEFAULT_BVS_DATA_PATH), "num_variational_particles": 100},
                 sampling_time_per_chain_seconds=12,
                 num_records_per_chain=100,
@@ -265,6 +252,54 @@ class ExperimentRunner:
             return lambda x: min(x)
         raise ValueError(f"Unknown observable: {observable_name}")
 
+    def resolve_generator(self, generator_name: str) -> GeneratorCallable:
+        from om.experiments.experiment_utils import (
+            experiment1_ising1d,
+            experiment2_ising1d__high_dim,
+            experiment3_varselect_mice_data,
+        )
+
+        generators = {
+            "experiment1_ising1d": experiment1_ising1d,
+            "experiment2_ising1d__high_dim": experiment2_ising1d__high_dim,
+            "experiment3_varselect_mice_data": experiment3_varselect_mice_data,
+        }
+        return generators[generator_name]
+
+    def resolve_run_function(self, family: str) -> Callable:
+        if family == "kl":
+            from om.experiments.multichain_kl_experiments import multi_chain_kl_compute_and_plot
+
+            return multi_chain_kl_compute_and_plot
+        if family == "bias_iter":
+            from om.experiments.multichain_bias_experiments_iter import (
+                multi_chain_expected_func_compute_and_plot_itr,
+            )
+
+            return multi_chain_expected_func_compute_and_plot_itr
+        if family == "bias_time":
+            from om.experiments.multichain_bias_experiments_time import (
+                multi_chain_expected_func_compute_and_plot_time,
+            )
+
+            return multi_chain_expected_func_compute_and_plot_time
+        raise ValueError(f"Unsupported family: {family}")
+
+    def resolve_plot_loader(self, family: str) -> Callable:
+        if family == "kl":
+            from om.experiments.multichain_kl_experiments import load_and_show_plots
+
+            return load_and_show_plots
+        if family == "bias_iter":
+            from om.experiments.multichain_bias_experiments_iter import load_and_show_plots
+
+            return load_and_show_plots
+        if family == "bias_time":
+            from om.experiments.multichain_bias_experiments_time import load_and_show_plots_TIME
+
+            return load_and_show_plots_TIME
+        raise ValueError(f"Unsupported family for plot regeneration: {family}")
+
     def run(self, args: argparse.Namespace):
         if args.list_presets:
             print(self.list_presets())
@@ -298,10 +333,11 @@ class ExperimentRunner:
         run_dvpi = preset.default_run_dvpi if args.run_dvpi is None else args.run_dvpi
         run_greedy_bfs = preset.default_run_greedy_bfs if args.run_greedy_bfs is None else args.run_greedy_bfs
         run_greedy_nwss = preset.default_run_greedy_nwss if args.run_greedy_nwss is None else args.run_greedy_nwss
+        generator = self.resolve_generator(preset.generator_name)
 
         common_kwargs = {
             "path": str(output_dir),
-            "model_sampler_init_generator": preset.generator,
+            "model_sampler_init_generator": generator,
             "generator_args": generator_args,
             "num_records_per_chain": args.num_records or preset.num_records_per_chain,
             "num_independent_chains": args.num_chains or preset.num_independent_chains,
@@ -309,7 +345,8 @@ class ExperimentRunner:
         }
 
         if args.family == "kl":
-            return multi_chain_kl_compute_and_plot(
+            run_fn = self.resolve_run_function(args.family)
+            return run_fn(
                 **common_kwargs,
                 num_mcmc_samples_per_chain=args.num_mcmc_samples or preset.num_mcmc_samples_per_chain,
                 do_run_mcmc_opad=run_mcmc_opad,
@@ -321,7 +358,8 @@ class ExperimentRunner:
         observable = self.observable_from_name(args.observable)
 
         if args.family == "bias_iter":
-            return multi_chain_expected_func_compute_and_plot_itr(
+            run_fn = self.resolve_run_function(args.family)
+            return run_fn(
                 **common_kwargs,
                 num_mcmc_samples_per_chain=args.num_mcmc_samples or preset.num_mcmc_samples_per_chain,
                 func_state=observable,
@@ -332,7 +370,8 @@ class ExperimentRunner:
             )
 
         if args.family == "bias_time":
-            return multi_chain_expected_func_compute_and_plot_time(
+            run_fn = self.resolve_run_function(args.family)
+            return run_fn(
                 **common_kwargs,
                 sampling_time_per_chain_seconds=args.sampling_time_seconds or preset.sampling_time_per_chain_seconds,
                 func_state=observable,
@@ -377,7 +416,8 @@ class ExperimentRunner:
         run_greedy_nwss = has_greedy_nwss if args.run_greedy_nwss is None else args.run_greedy_nwss
 
         if args.family == "kl":
-            return load_kl_plots(
+            plot_loader = self.resolve_plot_loader(args.family)
+            return plot_loader(
                 RESPATH=result_dir,
                 do_plot_mcmc=run_mcmc_opad,
                 do_plot_mcmc_opad=run_mcmc_opad,
@@ -391,7 +431,8 @@ class ExperimentRunner:
             )
 
         if args.family == "bias_iter":
-            return load_iter_bias_plots(
+            plot_loader = self.resolve_plot_loader(args.family)
+            return plot_loader(
                 RESPATH=result_dir,
                 do_plot_greedy_bfs=run_greedy_bfs,
                 do_plot_greedy_nwss=run_greedy_nwss,
@@ -400,7 +441,8 @@ class ExperimentRunner:
             )
 
         if args.family == "bias_time":
-            return load_and_show_plots_TIME(
+            plot_loader = self.resolve_plot_loader(args.family)
+            return plot_loader(
                 RESPATH=result_dir,
                 do_plot_greedy_bfs=run_greedy_bfs,
                 do_plot_greedy_nwss=run_greedy_nwss,
